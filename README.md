@@ -29,3 +29,7 @@ APITickets/
 
 Запуск сервера: 
 uvicorn main:app --reload
+
+Запуск тестов:
+pytest
+
