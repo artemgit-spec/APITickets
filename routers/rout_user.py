@@ -51,16 +51,27 @@ async def output_all_user(
 @apirouter_user.get("/info-user/{id}")
 async def info(
     id: int,
-    db:Annotated[Session, Depends(session_db)] 
+    db:Annotated[Session, Depends(session_db)],
+    token: Annotated[str, Depends(oaut2)]
 ):
-    user = db.scalar(select(User).where(User.id==id))
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Нет такого тикета'
-        )
-    return user
-
+    payload = decode_token(token)
+    if payload.get('is_admin') == 'admin':
+        user = db.scalar(select(User).where(User.id==id))
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='Нет такого тикета'
+            )
+        return user
+    else:
+        if payload.get('id') == id:
+            user = db.scalar(select(User).where(User.id==id))
+            return user
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Не достаточно прав'
+            )
 
 
 #обновление статуса по одному пользователю
@@ -68,18 +79,21 @@ async def info(
 async def update_status(
     id: int,
     db: Annotated[Session, Depends(session_db)],
-    new_status: NewStatusUser
+    new_status: NewStatusUser,
+    token: Annotated[str, Depends(oaut2)]
 ):
-    user = db.scalar(select(User).where(User.id==id))
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Нет такого тикета'
-        )
-    db.execute(update(User).where(User.id==id).values(
-        is_admin = new_status
-    ))
-    db.commit()
-    return {'status_code':status.HTTP_200_OK,
-            'detail':'Статус изменен'}
+    payload = decode_token(token)
+    if payload.get('is_admin') == 'admin':
+        user = db.scalar(select(User).where(User.id==id))
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='Нет такого тикета'
+            )
+        db.execute(update(User).where(User.id==id).values(
+            is_admin = new_status
+        ))
+        db.commit()
+        return {'status_code':status.HTTP_200_OK,
+                'detail':'Статус изменен'}
     
