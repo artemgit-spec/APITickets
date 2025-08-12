@@ -1,7 +1,6 @@
 import pytest
 
 
-
 @pytest.mark.parametrize("auth_token, id, status, answer",[
                          ('admin', 11, 200, {"title": "string","text_ticket": "string","is_active": "active"}),
                          ('admin', 100, 404, {"detail": "Нет такого тикета"}),
@@ -32,7 +31,7 @@ def test_create(client, auth_token):
                          ("admin", 5, {"title": "string","text_ticket": "string"}, 200, {"status_code": 200,"detail": 'Информация не была обновлена'} ),
                          ("user", 1, {"title": "string","text_ticket": "string"}, 200, {"status_code":403,"detail":"Не достаточно прав"})],
                          indirect=['auth_token'])  
-def test_update_info(auth_token, id, data,  status, answer, client):
+def test_update_info(auth_token, id, data, status, answer, client):
   resp = client.patch(f'/tickets/update-info/{id}',
                       json=data,
                       headers={"Authorization": auth_token})

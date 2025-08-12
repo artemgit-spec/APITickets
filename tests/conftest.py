@@ -26,6 +26,10 @@ def test_session(test_db):
     TestSession = sessionmaker(bind=test_db)
     session = TestSession()
     
+    for table in reversed(Base.metadata.sorted_tables):
+        session.execute(table.delete())
+    session.commit()
+    
     admin = User(name='admin', password=get_hash_pass('admin'), mail_users="user@example.com", is_admin='admin')
     user = User(name='user', password=get_hash_pass('user'), mail_users='user@example.com', is_admin='user')
     session.add_all([admin, user])
