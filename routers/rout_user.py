@@ -10,89 +10,92 @@ from enums_status.status import NewStatusUser
 from core.security import oaut2, get_hash_pass, decode_token
 
 
-apirouter_user = APIRouter(prefix='/users', tags=["Работа с пользователями"])
+apirouter_user = APIRouter(prefix="/users", tags=["Работа с пользователями"])
 
 
-#регистрация пользоватя
-@apirouter_user.post('/reg-user')
-async def create_user(
-    db:Annotated[Session, Depends(session_db)],
-    cr_us: CreateUser
-):
-    db.execute(insert(User).values(name = cr_us.name,
-                                   password = get_hash_pass(cr_us.password),
-                                   mail_users = cr_us.mail_user,
-                                   is_admin = cr_us.is_admin))
+# регистрация пользоватя
+@apirouter_user.post("/reg-user")
+async def create_user(db: Annotated[Session, Depends(session_db)], 
+                      cr_us: CreateUser):
+    db.execute(
+        insert(User).values(
+            name=cr_us.name,
+            password=get_hash_pass(cr_us.password),
+            mail_users=cr_us.mail_user,
+            is_admin=cr_us.is_admin,
+        )
+    )
     db.commit()
-    return {'status_code':status.HTTP_201_CREATED,
-            'detail':'Пользователь создан'}
+    return {
+            "status_code": status.HTTP_201_CREATED, 
+            "detail": "Пользователь создан"
+            }
 
-#вывод всех пользователей
-@apirouter_user.get('/all-users')
+
+# вывод всех пользователей
+@apirouter_user.get("/all-users")
 async def output_all_user(
-    db:Annotated[Session, Depends(session_db)],
-    token: Annotated[str, Depends(oaut2)]
+    db: Annotated[Session, Depends(session_db)], token: Annotated[str, Depends(oaut2)]
 ):
     payload = decode_token(token)
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Неверный токен или срок действия токена истек')
-    
-    admin = payload.get('is_admin')
-    if admin == 'admin':
+            detail="Неверный токен или срок действия токена истек",
+        )
+
+    admin = payload.get("is_admin")
+    if admin == "admin":
         users = db.scalars(select(User)).all()
         return users
     else:
-        return {'message':"недостаточно прав"}
+        return {"message": "недостаточно прав"}
 
-#вывод информации по одному пользователю
+
+# вывод информации по одному пользователю
 @apirouter_user.get("/info-user/{id}", response_model=InfoUser)
 async def info(
     id: int,
-    db:Annotated[Session, Depends(session_db)],
-    token: Annotated[str, Depends(oaut2)]
+    db: Annotated[Session, Depends(session_db)],
+    token: Annotated[str, Depends(oaut2)],
 ):
     payload = decode_token(token)
-    if payload.get('is_admin') == 'admin':
-        user = db.scalar(select(User).where(User.id==id))
+    if payload.get("is_admin") == "admin":
+        user = db.scalar(select(User).where(User.id == id))
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail='Нет такого пользователя'
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="Нет такого пользователя"
             )
         return user
     else:
-        if payload.get('id') == id:
-            user = db.scalar(select(User).where(User.id==id))
+        if payload.get("id") == id:
+            user = db.scalar(select(User).where(User.id == id))
             return user
         else:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Не достаточно прав'
+                status_code=status.HTTP_401_UNAUTHORIZED, 
+                detail="Не достаточно прав"
             )
 
 
-#обновление статуса по одному пользователю
+# обновление статуса по одному пользователю
 @apirouter_user.patch("/update-status-user/{id}")
 async def update_status(
     id: int,
     db: Annotated[Session, Depends(session_db)],
     new_status: NewStatusUser,
-    token: Annotated[str, Depends(oaut2)]
+    token: Annotated[str, Depends(oaut2)],
 ):
     payload = decode_token(token)
-    if payload.get('is_admin') == 'admin':
-        user = db.scalar(select(User).where(User.id==id))
+
+    if payload.get("is_admin") == "admin":
+        user = db.scalar(select(User).where(User.id == id))
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail='Нет такого пользователя'
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="Нет такого пользователя"
             )
-        db.execute(update(User).where(User.id==id).values(
-            is_admin = new_status
-        ))
+        db.execute(update(User).where(User.id == id).values(is_admin=new_status))
         db.commit()
-        return {'status_code':status.HTTP_200_OK,
-                'detail':'Статус изменен'}
-    
+        return {"status_code": status.HTTP_200_OK, "detail": "Статус изменен"}
